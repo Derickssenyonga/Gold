@@ -63,7 +63,7 @@ jobs:
       timeout-minutes: 60
     
     - name: Upload APK artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: goldscalper-apk
         path: android_app/bin/goldscalper*.apk
