@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.env
+bot_status.json
+gold_mt5_trade_log.jsonl
+.buildozer/
+bin/
+.pytest_cache/
