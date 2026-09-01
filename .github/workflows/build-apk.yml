@@ -37,7 +37,7 @@ jobs:
           ccache
     
     - name: Set up Android SDK
-    	run: |
+       run: |
         cd $HOME
         mkdir -p Android/sdk/cmdline-tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
