@@ -9,68 +9,18 @@ jobs:
   build:
     name: Build Gold Scalper APK
     runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/kivy/buildozer:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip wget curl \
-            build-essential libssl-dev libffi-dev \
-            libjpeg-dev zlib1g-dev libpng-dev \
-            libfreetype6-dev libharfbuzz-dev \
-            libwebp-dev libtiff-dev ccache \
-            autoconf automake libtool pkg-config
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install "cython==0.29.34"
-          python -m pip install "buildozer==1.6.0"
-
-      - name: Install Android SDK and NDK
-        env:
-          ANDROID_HOME: ${{ github.workspace }}/.android-sdk
-          ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
-        run: |
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          cd "$ANDROID_HOME"
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
-          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
-          shopt -s dotglob
-          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools"/* "$ANDROID_HOME/cmdline-tools/latest/"
-          rm -rf "$ANDROID_HOME/cmdline-tools/cmdline-tools"
-          rm -f "$ANDROID_HOME/cmdline-tools.zip"
-
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
-
-      - name: Build APK
+      - name: Build APK in Buildozer container
         working-directory: android_app
         env:
-          ANDROID_HOME: ${{ github.workspace }}/.android-sdk
-          ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
           BUILDOZER_WARN_ON_ROOT: '1'
         run: |
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           buildozer -v android debug
 
       - name: Upload APK artifact
