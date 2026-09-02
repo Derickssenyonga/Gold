@@ -27,10 +27,12 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             git \
             zip \
             unzip \
+            wget \
             autoconf \
             automake \
             libtool \
@@ -50,54 +52,27 @@ jobs:
             libwebp-dev \
             libtiff-dev
 
-      - name: Install Android command-line tools
-        run: |
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-
-          unzip -q commandlinetools-linux-13114758_latest.zip \
-            -d "$ANDROID_HOME/cmdline-tools"
-
-          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" \
-            "$ANDROID_HOME/cmdline-tools/latest"
-
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
-
-      - name: Install Android SDK packages
-        run: |
-          yes | sdkmanager --licenses || true
-
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-      - name: Verify Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --list | head -50
-          echo "Checking AIDL..."
-          find "$ANDROID_HOME/build-tools" -name aidl -type f -print
-
-      - name: Upgrade Python tools
+      - name: Install Python build tools
         run: |
           python -m pip install --upgrade pip setuptools wheel
-
-      - name: Install Cython
-        run: |
           pip install "Cython==0.29.34"
-
-      - name: Install Buildozer
-        run: |
           pip install "buildozer==1.6.0"
+
+      - name: Remove incomplete Buildozer Android SDK
+        run: |
+          rm -rf "$HOME/.buildozer/android/platform/android-sdk"
 
       - name: Build APK
         working-directory: android_app
+        env:
+          BUILDOZER_WARN_ON_ROOT: "1"
         run: |
-          buildozer android debug
+          buildozer -v android debug
+
+      - name: Verify APK
+        run: |
+          echo "APK files:"
+          find android_app/bin -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
