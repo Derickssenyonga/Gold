@@ -21,7 +21,7 @@ source.include_exts = py,png,jpg,kv,atlas
 requirements = python3,kivy
 
 # (str) Presplash of the app
-presplash.filename = %(source.dir)s/data/presplash.png
+# presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) Orientation of the app
 orientation = portrait
