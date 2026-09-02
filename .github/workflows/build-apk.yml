@@ -1,41 +1,24 @@
 name: Build Android APK
-
 on:
-  push:
-    branches: [ main, master, develop ]
   workflow_dispatch:
-
+  push:
+    branches: [ main ]
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
-      - name: Install system dependencies
+          python-version: '3.10'
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            openjdk-11-jdk \
-            build-essential \
-            libffi-dev \
-            libssl-dev \
-            libjpeg-dev \
-            zlib1g-dev \
-            libpng-dev \
-            libfreetype6-dev \
-            libharfbuzz-dev \
-            libwebp-dev \
-            libtiff-dev \
-            cython3 \
-            ccache
-
+          sudo apt update
+          sudo apt install -y openjdk-17-jdk zip unzip libssl-dev libjpeg-dev zlib1g-dev libpng-dev libfreetype6-dev libharfbuzz-dev libwebp-dev libtiff-dev cython3 ccache build-essential libffi-dev
+          pip install --upgrade pip
+          pip install buildozer cython
       - name: Set up Android SDK
         run: |
           cd $HOME
@@ -44,48 +27,19 @@ jobs:
           unzip -q commandlinetools-linux-10406996_latest.zip -d Android/sdk/cmdline-tools
           mv Android/sdk/cmdline-tools/cmdline-tools Android/sdk/cmdline-tools/latest
           rm commandlinetools-linux-10406996_latest.zip
-
-          # Make sdk available for this step and export envs for later steps
-          export ANDROID_HOME=$HOME/Android/sdk
-          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-
-          # Persist for subsequent steps
           echo "ANDROID_HOME=$HOME/Android/sdk" >> $GITHUB_ENV
           echo "$HOME/Android/sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$HOME/Android/sdk/platform-tools" >> $GITHUB_PATH
-
           yes | sdkmanager --licenses > /dev/null 2>&1
-
-          sdkmanager \
-            "platform-tools" \
-            "build-tools;37.0.0" \
-            "platforms;android-34" \
-            "ndk;26.1.10909125"
-
-      - name: Install buildozer and dependencies
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython
-
+          sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" "ndk;26.1.10909125"
       - name: Build APK
-        timeout-minutes: 60
         run: |
           cd android_app
           export ANDROID_HOME=$HOME/Android/sdk
-          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+          export PATH=$HOME/Android/sdk/cmdline-tools/latest/bin:$PATH
           buildozer android debug
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: goldscalper-apk
-          path: android_app/bin/goldscalper*.apk
-          retention-days: 30
-
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: android_app/bin/goldscalper*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: android_app/bin/*.apk
