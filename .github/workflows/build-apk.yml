@@ -27,7 +27,6 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
@@ -58,50 +57,68 @@ jobs:
           pip install "Cython==0.29.34"
           pip install "buildozer==1.6.0"
 
-      - name: Prepare Android SDK
+      - name: Prepare Buildozer Android SDK
         run: |
-          mkdir -p "$HOME/.buildozer/android/platform/android-sdk"
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          echo "Downloading Android command line tools..."
+          rm -rf "$SDK"
 
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip \
+          mkdir -p "$SDK/cmdline-tools"
+
+          wget -q \
+            https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip \
             -O /tmp/cmdline-tools.zip
-
-          mkdir -p /tmp/cmdline-tools
 
           unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools
 
-          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools"
-
-          rm -rf "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest"
-
           mv /tmp/cmdline-tools/cmdline-tools \
-            "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest"
+            "$SDK/cmdline-tools/latest"
 
-          echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> "$GITHUB_ENV"
+          mkdir -p "$SDK/tools/bin"
 
-          echo "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "$SDK/tools/bin/sdkmanager"
 
-      - name: Accept Android SDK licenses
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/avdmanager" \
+            "$SDK/tools/bin/avdmanager"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/apkanalyzer" \
+            "$SDK/tools/bin/apkanalyzer"
+
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+
+      - name: Accept Android licenses
         run: |
-          yes | sdkmanager --licenses || true
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-      - name: Install Android Build Tools
+          yes | "$SDK/tools/bin/sdkmanager" --licenses || true
+
+      - name: Install Android SDK components
         run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-34"
-          sdkmanager "build-tools;37.0.0"
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-      - name: Verify Android SDK
+          "$SDK/tools/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;37.0.0"
+
+      - name: Verify SDK
         run: |
-          echo "Android SDK:"
-          echo "$ANDROID_HOME"
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          echo "Installed Build Tools:"
-          ls -la "$ANDROID_HOME/build-tools"
+          echo "SDK: $SDK"
+          echo "sdkmanager:"
+          "$SDK/tools/bin/sdkmanager" --version
+
+          echo "Build Tools:"
+          ls -la "$SDK/build-tools"
 
           echo "AIDL:"
-          find "$ANDROID_HOME/build-tools" -name aidl -type f -print
+          find "$SDK/build-tools" -name aidl -type f -print
 
       - name: Build APK
         working-directory: android_app
@@ -109,10 +126,6 @@ jobs:
           BUILDOZER_WARN_ON_ROOT: "1"
         run: |
           buildozer -v android debug
-
-      - name: Show APK
-        run: |
-          find android_app/bin -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
