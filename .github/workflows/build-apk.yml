@@ -9,37 +9,30 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install dependencies
+      - name: Install system deps
         run: |
           sudo apt update
-          sudo apt install -y zip unzip libssl-dev libjpeg-dev zlib1g-dev libpng-dev libfreetype6-dev libharfbuzz-dev libwebp-dev libtiff-dev cython3 ccache build-essential libffi-dev
+          sudo apt install -y zip unzip build-essential libssl-dev libffi-dev python3-dev libjpeg-dev zlib1g-dev
+      - name: Install buildozer
+        run: |
           pip install --upgrade pip
-          pip install buildozer cython
-          yes | sdkmanager --licenses
-          sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" "ndk;26.1.10909125"
-
+          pip install buildozer==1.5.0 cython==0.29.36
       - name: Build APK
         run: |
           cd android_app
           buildozer android debug
-
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: goldscalper-apk
           path: android_app/bin/*.apk
+          if-no-files-found: error
