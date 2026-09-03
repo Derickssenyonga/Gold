@@ -33,3 +33,12 @@ def position_stop_level(entry_price: float, direction: str) -> float:
     if direction.upper() not in {"BUY", "SELL"}:
         raise ValueError("direction must be BUY or SELL")
     return float(entry_price)
+
+
+def protective_stop_level(entry_price: float, direction: str, distance: float) -> float:
+    """Return a valid initial stop before moving it to break-even."""
+    if direction.upper() == "BUY":
+        return float(entry_price - distance)
+    if direction.upper() == "SELL":
+        return float(entry_price + distance)
+    raise ValueError("direction must be BUY or SELL")

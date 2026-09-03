@@ -23,6 +23,8 @@ class BotConfig:
     rsi_period: int = int(os.getenv("RSI_PERIOD", "14"))
     atr_period: int = int(os.getenv("ATR_PERIOD", "14"))
     target_points: int = int(os.getenv("TARGET_POINTS", "20"))
+    initial_stop_points: int = int(os.getenv("INITIAL_STOP_POINTS", "100"))
+    breakeven_trigger_points: int = int(os.getenv("BREAKEVEN_TRIGGER_POINTS", "50"))
     max_hold_seconds: int = int(os.getenv("MAX_HOLD_SECONDS", "45"))
     lot_step: float = 0.01
     point_value: float = 100.0

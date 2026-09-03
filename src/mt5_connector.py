@@ -120,13 +120,22 @@ class MT5Connector:
         pos = mt5.positions_get(ticket=ticket)
         if pos is None or len(pos) == 0:
             return None
+        take_profit = float(getattr(pos[0], "tp", 0.0))
         request = {
             "action": mt5.TRADE_ACTION_SLTP,
             "position": int(ticket),
             "sl": float(stop_loss),
-            "tp": 0.0,
+            "tp": take_profit,
         }
         return mt5.order_send(request)
+
+    def move_stop_to_entry(self, ticket):
+        if mt5 is None:
+            raise RuntimeError("MetaTrader5 package is not installed.")
+        pos = mt5.positions_get(ticket=ticket)
+        if pos is None or len(pos) == 0:
+            return None
+        return self.modify_position_stop(ticket, pos[0].price_open)
 
     def trailing_stop(self, ticket, distance_points):
         pos = mt5.positions_get(ticket=ticket)

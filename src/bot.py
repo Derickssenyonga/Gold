@@ -4,7 +4,7 @@ from datetime import datetime
 
 from config import CONFIG
 from mt5_connector import MT5Connector
-from risk_manager import compute_lot_size, position_stop_level
+from risk_manager import compute_lot_size, protective_stop_level
 from strategy import generate_signal
 from telegram_alerts import TelegramAlerts
 
@@ -104,7 +104,7 @@ class GoldScalperBot:
 
     def get_market_snapshot(self):
         rates = self.connector.get_rates(CONFIG.symbol, 1, count=250)
-        closes = [float(r[4)] for r in rates]
+        closes = [float(r[4]) for r in rates]
         signal, meta = generate_signal(closes, CONFIG.fast_ema, CONFIG.mid_ema, CONFIG.slow_ema, CONFIG.rsi_period, CONFIG.atr_period)
         return signal, meta
 
@@ -116,7 +116,13 @@ class GoldScalperBot:
         for pos in positions:
             if pos.symbol != CONFIG.symbol:
                 continue
-            self.connector.trailing_stop(pos.ticket, 30)
+            entry = float(getattr(pos, "price_open", 0.0))
+            current = float(getattr(pos, "price_current", entry))
+            if entry <= 0:
+                continue
+            move = current - entry if int(pos.type) == 0 else entry - current
+            if move >= CONFIG.breakeven_trigger_points * 0.01:
+                self.connector.move_stop_to_entry(pos.ticket)
 
     def detect_closed_positions(self):
         positions = self.connector.get_positions() or []
@@ -147,7 +153,8 @@ class GoldScalperBot:
 
         now = datetime.now()
         price = self.connector.get_rates(CONFIG.symbol, 1, count=2)[-1][4]
-        stop_level = position_stop_level(price, signal)
+        stop_distance = CONFIG.initial_stop_points * 0.01
+        stop_level = protective_stop_level(price, signal, stop_distance)
         lot_size = compute_lot_size(
             account_balance=CONFIG.account_balance,
             risk_percent=CONFIG.risk_percent,
