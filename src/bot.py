@@ -30,6 +30,7 @@ class GoldScalperBot:
         self.running = True
         self.last_snapshot = {}
         self.last_position_tickets = set()
+        self.last_logged_signal = None
 
     def initialize(self):
         self.connector.connect()
@@ -155,6 +156,10 @@ class GoldScalperBot:
             self.telegram.stop_alert(CONFIG.symbol, price, reason="stop_at_entry")
 
     def handle_signal(self, signal, meta):
+        if signal != self.last_logged_signal:
+            print(f"Signal: {signal} | details: {meta}")
+            self.log_event("signal", {"signal": signal, "meta": meta})
+            self.last_logged_signal = signal
         if signal == "WAIT" or not self.running:
             return
 
@@ -201,6 +206,8 @@ class GoldScalperBot:
                 "result": str(result),
             }
             print(f"[{now}] BUY order result: {result}")
+            if getattr(result, "retcode", None) != 10009:
+                self.log_event("buy_rejected", {"retcode": getattr(result, "retcode", None), "result": str(result)})
             self.log_event("buy_order", trade_summary)
             self.send_alert_for_event("BUY", price, lot_size)
         elif signal == "SELL":
@@ -221,6 +228,8 @@ class GoldScalperBot:
                 "result": str(result),
             }
             print(f"[{now}] SELL order result: {result}")
+            if getattr(result, "retcode", None) != 10009:
+                self.log_event("sell_rejected", {"retcode": getattr(result, "retcode", None), "result": str(result)})
             self.log_event("sell_order", trade_summary)
             self.send_alert_for_event("SELL", price, lot_size)
 
