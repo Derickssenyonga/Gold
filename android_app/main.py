@@ -18,12 +18,25 @@ class GoldScalperLayout(BoxLayout):
         self.add_widget(title)
 
         # Config section
-        config_layout = GridLayout(cols=2, size_hint_y=0.25, spacing=12)
-        config_layout.add_widget(Label(text='Server IP:', font_size='14sp'))
-        self.ip_input = TextInput(text='192.168.1.100', multiline=False, size_hint_x=0.6)
+        config_layout = GridLayout(cols=2, size_hint_y=None, height=128, row_default_height=56, spacing=8)
+        config_layout.add_widget(Label(text='Server IP:', font_size='16sp'))
+        self.ip_input = TextInput(
+            text='192.168.1.100',
+            multiline=False,
+            font_size='18sp',
+            padding=[12, 12],
+            size_hint_x=1,
+        )
         config_layout.add_widget(self.ip_input)
-        config_layout.add_widget(Label(text='Port:', font_size='14sp'))
-        self.port_input = TextInput(text='5000', multiline=False, size_hint_x=0.6)
+        config_layout.add_widget(Label(text='Port:', font_size='16sp'))
+        self.port_input = TextInput(
+            text='5000',
+            multiline=False,
+            font_size='18sp',
+            padding=[12, 12],
+            input_filter='int',
+            size_hint_x=1,
+        )
         config_layout.add_widget(self.port_input)
         self.add_widget(config_layout)
 
