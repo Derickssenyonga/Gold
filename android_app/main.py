@@ -91,16 +91,16 @@ class GoldScalperLayout(BoxLayout):
     def on_status_failure(self, request, value):
         self.status_label.text = 'Status: OFFLINE'
 
+    def open_admin(self, instance):
+        import webbrowser
+        ip = self.ip_input.text or '192.168.1.100'
+        webbrowser.open(f'http://{ip}:5050/')
+
 
 class GoldScalperApp(App):
     def build(self):
         self.title = 'Gold Scalper'
         return GoldScalperLayout()
-
-    def open_admin(self, instance):
-        import webbrowser
-        ip = instance.parent.parent.ip_input.text or '192.168.1.100'
-        webbrowser.open(f'http://{ip}:5050/')
 
 
 if __name__ == '__main__':
