@@ -89,6 +89,16 @@ Once you have the APK:
 
 ## Quick start
 
+### Windows MT5 PC
+
+Install the 64-bit MetaTrader 5 desktop terminal, copy `.env.example` to `.env`, and enter the account details supplied by your broker. Then double-click [start_mt5_pc.bat](start_mt5_pc.bat), or run:
+
+```powershell
+.\start_mt5_pc.bat
+```
+
+The bot requires MT5 to be installed and logged into the correct demo account. Confirm `MT5_PATH`, `MT5_SERVER`, and `SYMBOL` match the values shown by your broker. Test on demo before enabling live trading.
+
 
 1. Install Python 3.11+
 2. Create a virtual environment and install dependencies:
