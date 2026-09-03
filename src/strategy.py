@@ -127,20 +127,32 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
     bearish_pullback = closes[-1] < closes[-2]
     bullish_rsi = 45 <= last_rsi <= 65
     bearish_rsi = 35 <= last_rsi <= 55
-    bullish_score = sum([
-        bullish_trend, bullish_structure, bullish_pullback, bullish_rsi,
-        bullish_candle, not bearish_sweep, trend_strength >= minimum_strength,
-        acceptable_spread, acceptable_risk_reward, atr_value > 0,
-    ])
-    bearish_score = sum([
-        bearish_trend, bearish_structure, bearish_pullback, bearish_rsi,
-        bearish_candle, not bullish_sweep, trend_strength >= minimum_strength,
-        acceptable_spread, acceptable_risk_reward, atr_value > 0,
-    ])
+    bullish_score = (
+        (2 if bullish_trend else 0)
+        + (2 if bullish_structure else 0)
+        + int(bullish_pullback)
+        + int(bullish_rsi)
+        + int(bullish_candle)
+        + int(not bearish_sweep)
+        + int(acceptable_spread)
+        + int(atr_value > 0)
+    )
+    bearish_score = (
+        (2 if bearish_trend else 0)
+        + (2 if bearish_structure else 0)
+        + int(bearish_pullback)
+        + int(bearish_rsi)
+        + int(bearish_candle)
+        + int(not bullish_sweep)
+        + int(acceptable_spread)
+        + int(atr_value > 0)
+    )
     meta["signal_score"] = float(max(bullish_score, bearish_score))
+    meta["bullish_score"] = float(bullish_score)
+    meta["bearish_score"] = float(bearish_score)
     meta["pipeline"] = {
-        "trend_filter": bool(bullish_trend or bearish_trend),
-        "market_structure": bool(bullish_structure or bearish_structure),
+        "trend_filter": {"bullish": 2 if bullish_trend else 0, "bearish": 2 if bearish_trend else 0},
+        "market_structure": {"bullish": 2 if bullish_structure else 0, "bearish": 2 if bearish_structure else 0},
         "pullback": bool(bullish_pullback or bearish_pullback),
         "rsi_confirmation": bool(bullish_rsi or bearish_rsi),
         "candle_confirmation": bool(bullish_candle or bearish_candle),
