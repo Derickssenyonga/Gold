@@ -59,6 +59,7 @@ class GoldScalperLayout(BoxLayout):
         self.add_widget(button_layout)
 
         # Start auto-refresh
+        Clock.schedule_once(self.refresh_status, 0)
         Clock.schedule_interval(self.refresh_status, 5)
 
     def get_url(self):
@@ -69,7 +70,14 @@ class GoldScalperLayout(BoxLayout):
     def refresh_status(self, *args):
         try:
             url = self.get_url()
-            UrlRequest(url, on_success=self.on_status_success, on_failure=self.on_status_failure)
+            self.status_label.text = 'Status: CHECKING...'
+            UrlRequest(
+                url,
+                on_success=self.on_status_success,
+                on_failure=self.on_status_failure,
+                on_error=self.on_status_error,
+                timeout=5,
+            )
         except Exception:
             self.status_label.text = 'Status: CONNECTION ERROR'
 
@@ -89,6 +97,9 @@ class GoldScalperLayout(BoxLayout):
             self.status_label.text = 'Status: PARSE ERROR'
 
     def on_status_failure(self, request, value):
+        self.status_label.text = 'Status: OFFLINE'
+
+    def on_status_error(self, request, error):
         self.status_label.text = 'Status: OFFLINE'
 
     def open_admin(self, instance):
