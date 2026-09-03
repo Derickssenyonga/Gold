@@ -61,6 +61,20 @@ def atr(values, period=14):
     return float(np.mean(true_ranges[-period:]))
 
 
+def trend_direction(prices, fast_period=8, mid_period=21, slow_period=50):
+    if len(prices) < max(fast_period, mid_period, slow_period):
+        return "neutral"
+    values = np.asarray(prices, dtype=float)
+    fast = ema(values, fast_period)[-1]
+    mid = ema(values, mid_period)[-1]
+    slow = ema(values, slow_period)[-1]
+    if fast > mid > slow:
+        return "bullish"
+    if fast < mid < slow:
+        return "bearish"
+    return "neutral"
+
+
 def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, atr_period=14, trend_filter=0.0003, mode="trend", highs=None, lows=None, opens=None, spread_points=0.0, max_spread_points=50.0, stop_points=100.0, target_points=200.0, minimum_strength=7.0, minimum_risk_reward=1.5):
     if len(prices) < max(fast_ema, mid_ema, slow_ema, rsi_period + 2):
         return "WAIT", None

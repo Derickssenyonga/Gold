@@ -5,7 +5,7 @@ from datetime import datetime
 from config import CONFIG
 from mt5_connector import MT5Connector
 from risk_manager import compute_lot_size, protective_stop_level
-from strategy import generate_signal
+from strategy import generate_signal, trend_direction
 from telegram_alerts import TelegramAlerts
 
 
@@ -104,7 +104,15 @@ class GoldScalperBot:
         return "unknown"
 
     def get_market_snapshot(self):
+        m15_rates = self.connector.get_rates(CONFIG.symbol, 15, count=250)
+        m5_rates = self.connector.get_rates(CONFIG.symbol, 5, count=250)
         rates = self.connector.get_rates(CONFIG.symbol, 1, count=250)
+        m15_trend = trend_direction(
+            [float(r[4]) for r in m15_rates], CONFIG.fast_ema, CONFIG.mid_ema, CONFIG.slow_ema
+        )
+        m5_trend = trend_direction(
+            [float(r[4]) for r in m5_rates], CONFIG.fast_ema, CONFIG.mid_ema, CONFIG.slow_ema
+        )
         opens = [float(r[1]) for r in rates]
         closes = [float(r[4]) for r in rates]
         highs = [float(r[2]) for r in rates]
@@ -131,6 +139,16 @@ class GoldScalperBot:
             minimum_strength=CONFIG.minimum_signal_strength,
             minimum_risk_reward=CONFIG.minimum_risk_reward,
         )
+        if meta is not None:
+            direction = "bullish" if signal == "BUY" else "bearish" if signal == "SELL" else "neutral"
+            m15_aligned = direction != "neutral" and m15_trend == direction
+            m5_aligned = direction != "neutral" and m5_trend == direction
+            meta["timeframes"] = {"M15": m15_trend, "M5": m5_trend, "M1": direction}
+            meta["pipeline"]["trend_filter"] = m15_aligned
+            meta["pipeline"]["market_structure"] = m5_aligned
+            meta["pipeline"]["multi_timeframe_aligned"] = m15_aligned and m5_aligned
+            if not (m15_aligned and m5_aligned):
+                signal = "WAIT"
         return signal, meta
 
     def manage_existing_positions(self):
@@ -183,6 +201,8 @@ class GoldScalperBot:
             float((meta or {}).get("signal_score", 0)) < 7
             or pipeline.get("risk_reward") is not True
             or pipeline.get("spread") is not True
+            or pipeline.get("trend_filter") is not True
+            or pipeline.get("market_structure") is not True
             or not trend_aligned
             or conflicting_signal
         ):
