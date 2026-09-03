@@ -6,7 +6,7 @@ title = GoldScalper
 package.name = goldscalper
 
 # (str) Package domain (needed for android/aidl)
-domain = org.example
+package.domain = org.example
 
 # (str) Package version
 version = 1.0
@@ -37,6 +37,8 @@ android.logcat_filters = *:S python:D
 
 # (int) Target Android API, should be as high as possible.
 android.api = 34
+
+android.ndk = 25b
 
 # (str) Android package architecture
 android.archs = arm64-v8a
