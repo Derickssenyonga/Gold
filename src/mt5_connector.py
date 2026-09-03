@@ -67,6 +67,11 @@ class MT5Connector:
             raise RuntimeError("MetaTrader5 package is not installed.")
         return mt5.copy_rates_from_pos(symbol, timeframe, 0, count)
 
+    def get_tick(self, symbol):
+        if mt5 is None:
+            raise RuntimeError("MetaTrader5 package is not installed.")
+        return mt5.symbol_info_tick(symbol)
+
     def send_order(self, symbol, order_type, volume, price, stop_loss=None, take_profit=None, comment=""):
         if mt5 is None:
             raise RuntimeError("MetaTrader5 package is not installed.")

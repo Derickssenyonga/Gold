@@ -16,16 +16,19 @@ class BotConfig:
     symbol: str = os.getenv("SYMBOL", "XAUUSD")
     alt_symbol: str = os.getenv("ALT_SYMBOL", "XAUUSDMICRO")
     broker_mode: str = os.getenv("BROKER_MODE", "mt5")
-    strategy_mode: str = os.getenv("STRATEGY_MODE", "momentum").lower()
+    strategy_mode: str = os.getenv("STRATEGY_MODE", "trend_continuation").lower()
     stop_at_entry: bool = os.getenv("STOP_AT_ENTRY", "true").lower() == "true"
     fast_ema: int = int(os.getenv("FAST_EMA", "8"))
     mid_ema: int = int(os.getenv("MID_EMA", "21"))
     slow_ema: int = int(os.getenv("SLOW_EMA", "50"))
     rsi_period: int = int(os.getenv("RSI_PERIOD", "14"))
     atr_period: int = int(os.getenv("ATR_PERIOD", "14"))
-    target_points: int = int(os.getenv("TARGET_POINTS", "20"))
+    target_points: int = int(os.getenv("TARGET_POINTS", "200"))
     initial_stop_points: int = int(os.getenv("INITIAL_STOP_POINTS", "100"))
     breakeven_trigger_points: int = int(os.getenv("BREAKEVEN_TRIGGER_POINTS", "50"))
+    max_spread_points: int = int(os.getenv("MAX_SPREAD_POINTS", "50"))
+    minimum_signal_strength: float = float(os.getenv("MINIMUM_SIGNAL_STRENGTH", "7"))
+    minimum_risk_reward: float = float(os.getenv("MINIMUM_RISK_REWARD", "1.5"))
     max_hold_seconds: int = int(os.getenv("MAX_HOLD_SECONDS", "45"))
     lot_step: float = 0.01
     point_value: float = 100.0

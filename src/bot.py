@@ -105,9 +105,14 @@ class GoldScalperBot:
 
     def get_market_snapshot(self):
         rates = self.connector.get_rates(CONFIG.symbol, 1, count=250)
+        opens = [float(r[1]) for r in rates]
         closes = [float(r[4]) for r in rates]
         highs = [float(r[2]) for r in rates]
         lows = [float(r[3]) for r in rates]
+        tick = self.connector.get_tick(CONFIG.symbol)
+        symbol_info = self.connector.get_symbol_info(CONFIG.symbol)
+        point = float(getattr(symbol_info, "point", 0.01) or 0.01)
+        spread_points = (float(tick.ask) - float(tick.bid)) / point
         signal, meta = generate_signal(
             closes,
             CONFIG.fast_ema,
@@ -118,6 +123,13 @@ class GoldScalperBot:
             mode=CONFIG.strategy_mode,
             highs=highs,
             lows=lows,
+            opens=opens,
+            spread_points=spread_points,
+            max_spread_points=CONFIG.max_spread_points,
+            stop_points=CONFIG.initial_stop_points,
+            target_points=CONFIG.target_points,
+            minimum_strength=CONFIG.minimum_signal_strength,
+            minimum_risk_reward=CONFIG.minimum_risk_reward,
         )
         return signal, meta
 
@@ -165,7 +177,7 @@ class GoldScalperBot:
 
         positions = self.connector.get_positions() or []
         symbol_positions = [p for p in positions if p.symbol == CONFIG.symbol]
-        if len(symbol_positions) >= self.max_positions:
+        if len(symbol_positions) >= 1:
             return
 
         now = datetime.now()
