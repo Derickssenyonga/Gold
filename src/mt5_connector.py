@@ -21,7 +21,16 @@ class MT5Connector:
         if not os.path.exists(self.path):
             raise FileNotFoundError(f"MT5 terminal not found at: {self.path}")
 
-        if not mt5.initialize(login=self.login, password=self.password, server=self.server, path=self.path):
+        has_credentials = self.login > 0 and self.password and self.server and "your_" not in self.server.lower()
+        initialize_args = {"path": self.path}
+        if has_credentials:
+            initialize_args.update({
+                "login": self.login,
+                "password": self.password,
+                "server": self.server,
+            })
+
+        if not mt5.initialize(**initialize_args):
             error = mt5.last_error()
             raise RuntimeError(f"MT5 initialize failed: {error}")
 
