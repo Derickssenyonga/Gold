@@ -16,6 +16,7 @@ class BotConfig:
     symbol: str = os.getenv("SYMBOL", "XAUUSD")
     alt_symbol: str = os.getenv("ALT_SYMBOL", "XAUUSDMICRO")
     broker_mode: str = os.getenv("BROKER_MODE", "mt5")
+    strategy_mode: str = os.getenv("STRATEGY_MODE", "hybrid").lower()
     stop_at_entry: bool = os.getenv("STOP_AT_ENTRY", "true").lower() == "true"
     fast_ema: int = int(os.getenv("FAST_EMA", "8"))
     mid_ema: int = int(os.getenv("MID_EMA", "21"))

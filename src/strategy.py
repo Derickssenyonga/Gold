@@ -61,7 +61,7 @@ def atr(values, period=14):
     return float(np.mean(true_ranges[-period:]))
 
 
-def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, atr_period=14, trend_filter=0.0003):
+def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, atr_period=14, trend_filter=0.0003, mode="trend", highs=None, lows=None):
     if len(prices) < max(fast_ema, mid_ema, slow_ema, rsi_period + 2):
         return "WAIT", None
 
@@ -79,7 +79,22 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
     prev_mid = float(mid[-2])
     prev_slow = float(slow[-2])
     last_rsi = float(rsi_values[-1])
+    if highs is None:
+        highs = closes
+    if lows is None:
+        lows = closes
+    highs = np.asarray(highs, dtype=float)
+    lows = np.asarray(lows, dtype=float)
+    if len(highs) != len(closes) or len(lows) != len(closes):
+        return "WAIT", None
     signal_strength = abs(last_fast - last_slow) / max(abs(last_slow) * 0.0001, 1e-6)
+    lookback = min(20, len(closes) - 1)
+    prior_high = float(np.max(highs[-lookback - 1:-1]))
+    prior_low = float(np.min(lows[-lookback - 1:-1]))
+    bullish_sweep = float(lows[-1]) < prior_low and closes[-1] > prior_low
+    bearish_sweep = float(highs[-1]) > prior_high and closes[-1] < prior_high
+    mean_reversion_buy = closes[-1] < last_mid and last_rsi <= 35
+    mean_reversion_sell = closes[-1] > last_mid and last_rsi >= 65
 
     meta = {
         "fast": last_fast,
@@ -89,10 +104,18 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
         "atr": float(atr_value),
         "strength": float(signal_strength),
         "trend": "bullish" if last_fast > last_mid > last_slow else "bearish",
+        "bullish_sweep": bool(bullish_sweep),
+        "bearish_sweep": bool(bearish_sweep),
+        "mean_reversion": "buy" if mean_reversion_buy else "sell" if mean_reversion_sell else "none",
     }
 
     bullish = (last_fast > last_mid > last_slow) and (prev_fast <= prev_mid <= prev_slow) and (last_rsi > 52) and (atr_value > 0) and (signal_strength > trend_filter)
     bearish = (last_fast < last_mid < last_slow) and (prev_fast >= prev_mid >= prev_slow) and (last_rsi < 48) and (atr_value > 0) and (signal_strength > trend_filter)
+
+    mode = (mode or "trend").lower()
+    if mode in {"mean_reversion", "hybrid"}:
+        bullish = mean_reversion_buy and bullish_sweep and atr_value > 0
+        bearish = mean_reversion_sell and bearish_sweep and atr_value > 0
 
     if bullish:
         return "BUY", meta

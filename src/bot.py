@@ -105,7 +105,19 @@ class GoldScalperBot:
     def get_market_snapshot(self):
         rates = self.connector.get_rates(CONFIG.symbol, 1, count=250)
         closes = [float(r[4]) for r in rates]
-        signal, meta = generate_signal(closes, CONFIG.fast_ema, CONFIG.mid_ema, CONFIG.slow_ema, CONFIG.rsi_period, CONFIG.atr_period)
+        highs = [float(r[2]) for r in rates]
+        lows = [float(r[3]) for r in rates]
+        signal, meta = generate_signal(
+            closes,
+            CONFIG.fast_ema,
+            CONFIG.mid_ema,
+            CONFIG.slow_ema,
+            CONFIG.rsi_period,
+            CONFIG.atr_period,
+            mode=CONFIG.strategy_mode,
+            highs=highs,
+            lows=lows,
+        )
         return signal, meta
 
     def manage_existing_positions(self):
