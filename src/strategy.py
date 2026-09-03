@@ -113,6 +113,23 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
     bearish = (last_fast < last_mid < last_slow) and (prev_fast >= prev_mid >= prev_slow) and (last_rsi < 48) and (atr_value > 0) and (signal_strength > trend_filter)
 
     mode = (mode or "trend").lower()
+    bullish_momentum = (
+        last_fast > last_mid > last_slow
+        and closes[-1] > closes[-2] > last_fast
+        and 55 <= last_rsi <= 75
+        and atr_value > 0
+        and signal_strength > trend_filter
+    )
+    bearish_momentum = (
+        last_fast < last_mid < last_slow
+        and closes[-1] < closes[-2] < last_fast
+        and 25 <= last_rsi <= 45
+        and atr_value > 0
+        and signal_strength > trend_filter
+    )
+    if mode in {"momentum", "trend_continuation", "trend-continuation"}:
+        bullish = bullish_momentum
+        bearish = bearish_momentum
     if mode in {"mean_reversion", "hybrid"}:
         bullish = mean_reversion_buy and bullish_sweep and atr_value > 0
         bearish = mean_reversion_sell and bearish_sweep and atr_value > 0
