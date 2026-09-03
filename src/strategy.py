@@ -90,7 +90,7 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
     opens = np.asarray(opens, dtype=float)
     if len(highs) != len(closes) or len(lows) != len(closes) or len(opens) != len(closes):
         return "WAIT", None
-    signal_strength = min(10.0, abs(last_fast - last_slow) / max(atr_value, 1e-6) * 3.0)
+    trend_strength = min(10.0, abs(last_fast - last_slow) / max(atr_value, 1e-6) * 3.0)
     lookback = min(20, len(closes) - 1)
     prior_high = float(np.max(highs[-lookback - 1:-1]))
     prior_low = float(np.min(lows[-lookback - 1:-1]))
@@ -107,7 +107,7 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
         "slow": last_slow,
         "rsi": last_rsi,
         "atr": float(atr_value),
-        "strength": float(signal_strength),
+        "strength": float(trend_strength),
         "spread_points": float(spread_points),
         "risk_reward": float(target_points / max(stop_points, 1e-6)),
         "trend": "bullish" if last_fast > last_mid > last_slow else "bearish",
@@ -116,33 +116,62 @@ def generate_signal(prices, fast_ema=8, mid_ema=21, slow_ema=50, rsi_period=14, 
         "mean_reversion": "buy" if mean_reversion_buy else "sell" if mean_reversion_sell else "none",
     }
 
-    bullish = (last_fast > last_mid > last_slow) and (prev_fast <= prev_mid <= prev_slow) and (last_rsi > 52) and (atr_value > 0) and (signal_strength > trend_filter)
-    bearish = (last_fast < last_mid < last_slow) and (prev_fast >= prev_mid >= prev_slow) and (last_rsi < 48) and (atr_value > 0) and (signal_strength > trend_filter)
-
     mode = (mode or "trend").lower()
     acceptable_spread = spread_points <= max_spread_points
     acceptable_risk_reward = target_points / max(stop_points, 1e-6) >= minimum_risk_reward
+    bullish_trend = last_fast > last_mid > last_slow
+    bearish_trend = last_fast < last_mid < last_slow
+    bullish_structure = closes[-1] > last_slow
+    bearish_structure = closes[-1] < last_slow
+    bullish_pullback = closes[-1] > closes[-2]
+    bearish_pullback = closes[-1] < closes[-2]
+    bullish_rsi = 45 <= last_rsi <= 65
+    bearish_rsi = 35 <= last_rsi <= 55
+    bullish_score = sum([
+        bullish_trend, bullish_structure, bullish_pullback, bullish_rsi,
+        bullish_candle, not bearish_sweep, trend_strength >= minimum_strength,
+        acceptable_spread, acceptable_risk_reward, atr_value > 0,
+    ])
+    bearish_score = sum([
+        bearish_trend, bearish_structure, bearish_pullback, bearish_rsi,
+        bearish_candle, not bullish_sweep, trend_strength >= minimum_strength,
+        acceptable_spread, acceptable_risk_reward, atr_value > 0,
+    ])
+    meta["signal_score"] = float(max(bullish_score, bearish_score))
+    meta["pipeline"] = {
+        "trend_filter": bool(bullish_trend or bearish_trend),
+        "market_structure": bool(bullish_structure or bearish_structure),
+        "pullback": bool(bullish_pullback or bearish_pullback),
+        "rsi_confirmation": bool(bullish_rsi or bearish_rsi),
+        "candle_confirmation": bool(bullish_candle or bearish_candle),
+        "sweep_confirmation": bool(not bullish_sweep and not bearish_sweep),
+        "signal_score": float(max(bullish_score, bearish_score)),
+        "risk_reward": bool(acceptable_risk_reward),
+        "spread": bool(acceptable_spread),
+    }
+    bullish = (bullish_trend and bullish_pullback and bullish_rsi and atr_value > 0)
+    bearish = (bearish_trend and bearish_pullback and bearish_rsi and atr_value > 0)
     bullish_momentum = (
-        last_fast > last_mid > last_slow
-        and closes[-1] > last_slow
-        and closes[-1] > closes[-2]
-        and 45 <= last_rsi <= 65
+        bullish_trend
+        and bullish_structure
+        and bullish_pullback
+        and bullish_rsi
         and bullish_candle
         and not bearish_sweep
         and atr_value > 0
-        and signal_strength >= minimum_strength
+        and bullish_score >= minimum_strength
         and acceptable_spread
         and acceptable_risk_reward
     )
     bearish_momentum = (
-        last_fast < last_mid < last_slow
-        and closes[-1] < last_slow
-        and closes[-1] < closes[-2]
-        and 35 <= last_rsi <= 55
+        bearish_trend
+        and bearish_structure
+        and bearish_pullback
+        and bearish_rsi
         and bearish_candle
         and not bullish_sweep
         and atr_value > 0
-        and signal_strength >= minimum_strength
+        and bearish_score >= minimum_strength
         and acceptable_spread
         and acceptable_risk_reward
     )

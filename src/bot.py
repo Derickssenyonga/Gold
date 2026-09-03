@@ -218,7 +218,7 @@ class GoldScalperBot:
                 "result": str(result),
             }
             print(f"[{now}] BUY order result: {result}")
-            if getattr(result, "retcode", None) != 10009:
+            if not self.connector.verify_execution(result, CONFIG.symbol):
                 self.log_event("buy_rejected", {"retcode": getattr(result, "retcode", None), "result": str(result)})
             self.log_event("buy_order", trade_summary)
             self.send_alert_for_event("BUY", price, lot_size)
@@ -240,7 +240,7 @@ class GoldScalperBot:
                 "result": str(result),
             }
             print(f"[{now}] SELL order result: {result}")
-            if getattr(result, "retcode", None) != 10009:
+            if not self.connector.verify_execution(result, CONFIG.symbol):
                 self.log_event("sell_rejected", {"retcode": getattr(result, "retcode", None), "result": str(result)})
             self.log_event("sell_order", trade_summary)
             self.send_alert_for_event("SELL", price, lot_size)

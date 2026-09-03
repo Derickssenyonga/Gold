@@ -72,6 +72,16 @@ class MT5Connector:
             raise RuntimeError("MetaTrader5 package is not installed.")
         return mt5.symbol_info_tick(symbol)
 
+    def get_filling_mode(self, symbol):
+        if mt5 is None:
+            raise RuntimeError("MetaTrader5 package is not installed.")
+        info = self.get_symbol_info(symbol)
+        supported = int(getattr(info, "filling_mode", 0) or 0)
+        for mode in (mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_RETURN):
+            if supported & (1 << mode):
+                return mode
+        return mt5.ORDER_FILLING_IOC
+
     def send_order(self, symbol, order_type, volume, price, stop_loss=None, take_profit=None, comment=""):
         if mt5 is None:
             raise RuntimeError("MetaTrader5 package is not installed.")
@@ -86,9 +96,18 @@ class MT5Connector:
             "tp": float(take_profit) if take_profit is not None else 0.0,
             "comment": comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
+            "type_filling": self.get_filling_mode(symbol),
         }
         return mt5.order_send(request)
+
+    def verify_execution(self, result, symbol):
+        if mt5 is None:
+            raise RuntimeError("MetaTrader5 package is not installed.")
+        accepted = {mt5.TRADE_RETCODE_DONE, mt5.TRADE_RETCODE_PLACED}
+        if result is None or getattr(result, "retcode", None) not in accepted:
+            return False
+        positions = self.get_positions() or []
+        return any(position.symbol == symbol for position in positions)
 
     def market_buy(self, symbol, volume, price, stop_loss=None, take_profit=None, comment="gold_scalper_buy"):
         return self.send_order(symbol, mt5.ORDER_TYPE_BUY, volume, price, stop_loss, take_profit, comment)
