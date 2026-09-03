@@ -175,6 +175,28 @@ class GoldScalperBot:
         if signal == "WAIT" or not self.running:
             return
 
+        pipeline = (meta or {}).get("pipeline", {})
+        trend = (meta or {}).get("trend")
+        trend_aligned = (signal == "BUY" and trend == "bullish") or (signal == "SELL" and trend == "bearish")
+        conflicting_signal = (signal == "BUY" and trend == "bearish") or (signal == "SELL" and trend == "bullish")
+        if (
+            float((meta or {}).get("signal_score", 0)) < 7
+            or pipeline.get("risk_reward") is not True
+            or pipeline.get("spread") is not True
+            or not trend_aligned
+            or conflicting_signal
+        ):
+            self.log_event("entry_blocked", {
+                "signal": signal,
+                "signal_score": (meta or {}).get("signal_score", 0),
+                "risk_reward": pipeline.get("risk_reward"),
+                "spread": pipeline.get("spread"),
+                "trend": trend,
+                "trend_aligned": trend_aligned,
+                "conflicting_signal": conflicting_signal,
+            })
+            return
+
         positions = self.connector.get_positions() or []
         symbol_positions = [p for p in positions if p.symbol == CONFIG.symbol]
         if len(symbol_positions) >= 1:
