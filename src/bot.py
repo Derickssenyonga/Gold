@@ -217,16 +217,33 @@ class GoldScalperBot:
         self.update_status_snapshot()
 
     def run(self):
-        self.initialize()
+        retry_seconds = 10
         try:
             while True:
-                if self.running:
-                    signal, meta = self.get_market_snapshot()
-                    self.manage_existing_positions()
-                    self.detect_closed_positions()
-                    self.handle_signal(signal, meta)
-                self.update_status_snapshot()
-                time.sleep(1)
+                try:
+                    if not self.connector.connected:
+                        self.initialize()
+
+                    if self.running:
+                        signal, meta = self.get_market_snapshot()
+                        self.manage_existing_positions()
+                        self.detect_closed_positions()
+                        self.handle_signal(signal, meta)
+                    self.update_status_snapshot()
+                    time.sleep(1)
+                except Exception as exc:
+                    self.log_event("runtime_error", {"message": str(exc)})
+                    print(f"MT5 runtime error: {exc}. Retrying in {retry_seconds}s.")
+                    self.connector.disconnect()
+                    self.last_snapshot = {
+                        "status": "reconnecting",
+                        "symbol": CONFIG.symbol,
+                        "last_signal": self.last_signal,
+                        "account_balance": CONFIG.account_balance,
+                        "floating_pnl": 0.0,
+                        "positions_count": 0,
+                    }
+                    time.sleep(retry_seconds)
         finally:
             self.connector.disconnect()
 
